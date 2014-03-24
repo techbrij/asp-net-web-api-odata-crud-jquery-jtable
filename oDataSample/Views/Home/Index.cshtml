@@ -1,0 +1,170 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+    <link href="~/Content/themes/base/jquery-ui.css" rel="stylesheet" />
+    <link href="~/Scripts/jtable/themes/metro/blue/jtable.css" rel="stylesheet" />
+   
+    <script src="~/Scripts/jquery-1.10.2.js"></script>
+    <script src="~/Scripts/jquery-ui-1.9.2.min.js"></script>
+    <script src="~/Scripts/jtable/jquery.jtable.js"></script>
+
+    <script type="text/javascript" charset="utf-8">
+        $(function () {
+            //By: TechBrij.com
+            $('#PersonContainer').jtable({
+                title: 'Person Information',
+                paging: true,
+                pageSize: 10,
+                sorting: true,
+                multiSorting: true,
+                defaultSorting: 'Name asc',
+                actions: {
+                    listAction: getListData,
+                    deleteAction: deleteItem,
+                    createAction: createItem,
+                    updateAction: updateItem
+                },
+                fields: {
+                    ID: {
+                        key: true,
+                        create: false,
+                        edit: false,
+                        list: false
+                    },
+                    Name: {
+                        title: 'Name',
+                        width: '30%'
+                    },
+                    Email: {
+                        title: 'Email address',
+                        width: '30%'
+                    },
+                    Phone: {
+                        title: 'Phone',
+                        width: '30%'
+                    }
+                }
+            });
+            $('#PersonContainer').jtable('load');
+        });
+
+
+        function getListData(postData, jtParams) {
+            
+            var ret;
+            var query = "/odata/Persons" //root uri
+            + "?$select=ID,Name,Email,Phone" //reduce the payload to what we need
+            + "&$inlinecount=allpages"
+            + "&$orderby=" + jtParams.jtSorting.replace(' DESC', ' desc').replace(' ASC', ' asc')
+            + "&$skip=" + jtParams.jtStartIndex
+            + "&$top=" + jtParams.jtPageSize 
+            //+ "&$format=json" //give me json
+            //+ "&$callback=callback"; //this is my callback
+            return $.Deferred(function ($dfd) {
+                $.ajax({
+                    url: query,
+                    type: 'GET',
+                    dataType: 'json',
+                    data: postData,
+                    success: function (data) {
+                        ret = {
+                            'Result': "OK",
+                            'Records': data.value,
+                            'TotalRecordCount': data['odata.count']
+                        };
+                        $dfd.resolve(ret);
+                    },
+                    error: function () {
+                        $dfd.reject();
+                    }
+                });
+            });
+
+        }
+
+        function createItem(postData) {
+            var ret;
+            return $.Deferred(function ($dfd) {
+                $.ajax({
+                    url: '/odata/Persons',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: postData,
+                    success: function (data) {
+                        ret = {
+                            'Result': "OK",
+                            'Record': data
+                        };
+                        $dfd.resolve(ret);
+                    },
+                    error: function () {
+                        $dfd.reject();
+                    }
+                });
+            });
+        }
+
+        function updateItem(item) {
+            var ret;
+            return $.Deferred(function ($dfd) {
+                $.ajax({
+                    url: '/odata/Persons(' + getParameterByName(item, 'ID') + ')',
+                    type: 'PUT',
+                    dataType: 'json',
+                    data: item,
+                    success: function (data) {
+                        ret = {
+                            'Result': "OK",
+                            'Record': data
+                        };
+                        $dfd.resolve(ret);
+                    },
+                    error: function () {
+                        $dfd.reject();
+                    }
+                });
+            });
+        }
+
+        function deleteItem(item) {
+            return $.Deferred(function ($dfd) {
+                $.ajax({
+                    url: '/odata/Persons(' + item.ID + ')',
+                    type: 'DELETE',
+                    dataType: 'json',
+                    data: item,
+                    success: function (data) {
+                        $dfd.resolve({ 'Result': "OK" });
+                    },
+                    error: function () {
+                        $dfd.reject();
+                    }
+                });
+            });
+        }
+
+        function getParameterByName(str, name) {
+            var sURLVariables = str.split('&');
+            for (var i = 0; i < sURLVariables.length; i++) {
+                var sParameterName = sURLVariables[i].split('=');
+                if (sParameterName[0] == name) {
+                    return sParameterName[1];
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <span style="font-size:1.2em;">For step by step tutorial, visit  <a href="http://techbrij.com">techbrij.com</a></span>
+    <div style="max-width:600px;margin-top:15px">
+        <div id="PersonContainer"></div>
+    </div>
+</body>
+</html>
